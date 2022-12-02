@@ -197,16 +197,7 @@ wget.callbacks.get_urls = function(file, url, is_css, iri)
     end
     if not processed(url_)
       and allowed(url_, origurl) then
-      if string.match(url_, "/globalv%-web/") and item_type == "video" then
-        table.insert(urls, {
-          url=url_,
-          headers={
-            ["Referer"]="https://www.vlive.tv/video/" .. item_type
-          }
-        })
-      else
-        table.insert(urls, { url=url_ })
-      end
+      table.insert(urls, { url=url_ })
       addedtolist[url_] = true
       addedtolist[url] = true
     end
