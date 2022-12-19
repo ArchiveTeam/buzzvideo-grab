@@ -354,9 +354,9 @@ wget.callbacks.get_urls = function(file, url, is_css, iri)
       if not largest_url then
         error("Could not find a video.")
       end
-      if string.match(largest_url, "^https?:(.+)$") ~= json["story"]["video"]["videoUrl"] then
+      --[[if string.match(largest_url, "^https?:(.+)$") ~= json["story"]["video"]["videoUrl"] then
         error("Found different video URLs.")
-      end
+      end]]
       local newurl = urlparse.absolute(url, json["story"]["video"]["videoUrl"])
       if json["story"]["videoUrl"] ~= newurl then
         error("Inconsistent video URLs.")
