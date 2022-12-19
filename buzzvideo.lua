@@ -550,6 +550,11 @@ wget.callbacks.httploop_result = function(url, err, http_stat)
     return wget.actions.EXIT
   end
 
+  if status_code == 400
+    and string.match(url["url"], "^https?://[^/]*topbuzzcdn%.com/") then
+    return wget.actions.EXIT
+  end
+
   if status_code ~= 200 then
     io.stdout:write("Server returned bad response. Sleeping.\n")
     io.stdout:flush()
