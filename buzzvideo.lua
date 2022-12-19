@@ -335,7 +335,7 @@ wget.callbacks.get_urls = function(file, url, is_css, iri)
         .. "?" .. string.gsub(api_params_string, "(&aid=)[0-9]+", "%16816")
         .. "&item_id=" .. json["story"]["articleId"]
         .. "&group_id=" .. json["story"]["groupId"]
-        .. "&media_id=" .. json["story"]["video"]["videoAuthorId"]
+        .. "&media_id=" .. json["story"]["author"]["id"]
         .. "&count=20"
         .. "&offset="
       )
@@ -373,6 +373,44 @@ wget.callbacks.get_urls = function(file, url, is_css, iri)
         force_queue(newurl)
         force_queue("https://p16-va.topbuzzcdn.com/list/" .. json["story"]["video"]["videoThumbnail"]["web_uri"])
         force_queue(json["story"]["imgUrl"])
+      end
+      for image_data in string.gmatch(json["story"]["content"], "<script%s*[^>]*>%s*({.-})%s*</script>") do
+        local image_json = JSON:decode(image_data)
+        local found_image = nil
+        for k, v in pairs(image_json) do
+          if string.match(k, "_src$") and string.match(v, "^https?://") then
+            force_queue(v)
+            found_image = v
+          end
+        end
+        if found_image == nil then
+          error("No image found in image data.")
+        end
+        local a, b = string.match(found_image, "^(https?://[^/]+/)[a-z]+(/.+)$")
+        if not a or not b then
+          error("Unknown image URL found.")
+        end
+        force_queue(a .. "large" .. b)
+      end
+      for video_data in string.gmatch(json["story"]["content"], "<a([^>]+)>") do
+        local data_mp4 = string.match(video_data, 'data%-mp4="(https?://[^"]+)"')
+        if not data_mp4 then
+          error("Could not find mp4 data.")
+        end
+        force_queue(data_mp4)
+        local data_thumbnail = string.match(video_data, 'data%-thumbnail="({.-})"')
+        if data_thumbnail then
+          local json_thumbnail = JSON:decode(string.gsub(data_thumbnail, "&quot;", '"'))
+          for _, size in pairs({"thumb", "origin", "large"}) do
+            force_queue("https://p16-va.topbuzzcdn.com/" .. size .. "/" .. json_thumbnail["web_uri"])
+          end
+        end
+      end
+      for img_src in string.gmatch(json["story"]["content"], '<img[^>]+src="([^"]+)"') do
+        local newurl = urlparse.absolute(url, img_src)
+        if string.match(newurl, "ipstatp") or string.match(newurl, "buzzcdn") then
+          force_queue(newurl)
+        end
       end
     end
     if string.match(url, "/api/1200/web/comment_v2/comments") then
