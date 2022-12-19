@@ -339,31 +339,41 @@ wget.callbacks.get_urls = function(file, url, is_css, iri)
         .. "&count=20"
         .. "&offset="
       )
-      local largest_size = nil
-      local largest_url = nil
-      for video_id, video_data in pairs(json["story"]["video"]["videoList"]) do
-        local size = tonumber(string.match(video_data["definition"], "^([0-9]+)"))
-        if not largest_size or size > largest_size then
-          if video_data["backup_url_1"] ~= video_data["main_url"] then
-            error("Found conflict in main and backup video URLs.")
+      local article_type = json["story"]["articleType"]
+      if article_type ~= "video" and article_type ~= "article" then
+        error("Unknown article type.")
+      end
+      if article_type == "video"
+        or (
+          article_type == "article"
+          and string.len(json["story"]["videoUrl"]) > 0
+        ) then
+        local largest_size = nil
+        local largest_url = nil
+        for video_id, video_data in pairs(json["story"]["video"]["videoList"]) do
+          local size = tonumber(string.match(video_data["definition"], "^([0-9]+)"))
+          if not largest_size or size > largest_size then
+            if video_data["backup_url_1"] ~= video_data["main_url"] then
+              error("Found conflict in main and backup video URLs.")
+            end
+            largest_size = size
+            largest_url = video_data["main_url"]
           end
-          largest_size = size
-          largest_url = video_data["main_url"]
         end
+        if not largest_url then
+          error("Could not find a video.")
+        end
+        --[[if string.match(largest_url, "^https?:(.+)$") ~= json["story"]["video"]["videoUrl"] then
+          error("Found different video URLs.")
+        end]]
+        local newurl = urlparse.absolute(url, json["story"]["video"]["videoUrl"])
+        if json["story"]["videoUrl"] ~= newurl then
+          error("Inconsistent video URLs.")
+        end
+        force_queue(newurl)
+        force_queue("https://p16-va.topbuzzcdn.com/list/" .. json["story"]["video"]["videoThumbnail"]["web_uri"])
+        force_queue(json["story"]["imgUrl"])
       end
-      if not largest_url then
-        error("Could not find a video.")
-      end
-      --[[if string.match(largest_url, "^https?:(.+)$") ~= json["story"]["video"]["videoUrl"] then
-        error("Found different video URLs.")
-      end]]
-      local newurl = urlparse.absolute(url, json["story"]["video"]["videoUrl"])
-      if json["story"]["videoUrl"] ~= newurl then
-        error("Inconsistent video URLs.")
-      end
-      force_queue(newurl)
-      force_queue(json["story"]["imgUrl"])
-      force_queue("https://p16-va.topbuzzcdn.com/list/" .. json["story"]["video"]["videoThumbnail"]["web_uri"])
     end
     if string.match(url, "/api/1200/web/comment_v2/comments") then
       local json = JSON:decode(html)
