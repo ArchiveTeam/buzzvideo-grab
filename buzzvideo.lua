@@ -505,7 +505,7 @@ wget.callbacks.httploop_result = function(url, err, http_stat)
   if status_code ~= 200 then
     io.stdout:write("Server returned bad response. Sleeping.\n")
     io.stdout:flush()
-    local maxtries = 3
+    local maxtries = 7
     tries = tries + 1
     if tries > maxtries then
       tries = 0
